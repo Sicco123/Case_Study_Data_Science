@@ -1,7 +1,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-
+import time
 #%%
 def kernel_function(u):
     """
@@ -30,11 +30,14 @@ def LL(a):
     h =  1  # bandwidth
     
     # create (n x n)-matrix K
-    k_i = lambda t: kernel_function((t - a) / h)                      
-    vfunc = np.vectorize(k_i, otypes=[np.float])
+    k_i = lambda t: kernel_function((t - a) / h)
+    vfunc = np.vectorize(k_i, otypes=[float])
     K = vfunc(x)
+
     K = np.diag(K)
-    
+
+
+
     # create Z
     h = x - a
     Z = np.hstack((np.ones((len(x), 1)), h.reshape((len(x), 1))))
@@ -43,18 +46,23 @@ def LL(a):
     M1 = np.linalg.inv(np.matmul(Z.transpose(), np.matmul(K,Z)))    # M1  = (Z'KZ)⁻¹  
     M2 = np.matmul(Z.transpose(), K)                                # M2  =  Z'K
     res = np.matmul(np.matmul(M1,M2),y)                             # res =  M1 * M2 * y 
-    
+
     return res
 
-# Create points (x2,y2) which are used to plot the LL curve 
+# Create points (x2,y2) which are used to plot the LL curve
+
 x2 = np.random.uniform(low = 0, high = 6, size = (10000, ))
+start_time = time.process_time()
 x2.sort()
 y2 = LL(x2[0])
+
 for i in range(1,len(x2)):
     y2 = np.vstack((y2,LL(x2[i])))
- 
+end_time = time.process_time()
+print(f'The local linear regression takes {end_time-start_time}')
 # Plot    
 plt.figure() 
 plt.plot(x2, y2[:,0])                # plot local linear estimator 
 plt.scatter(x,y,[3]*len(y))          # plot simulated data points
 plt.plot(x2, np.sin(x2), color ="red")# plot true function = sin(x)
+plt.show()

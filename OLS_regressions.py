@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import math
 import pandas as pd
 #%% Import data
-with open('C:/Users/damia/Documents/MASTER/Case Study Data science/reproduction_vs_index_Japan.pkl', 'rb') as f:
+with open('reproduction_vs_index_Japan.pkl', 'rb') as f:
     raw = pickle.load(f)
 
 
@@ -18,12 +18,14 @@ for index in ["StringencyIndex",'GovernmentResponseIndex', "ContainmentHealthInd
     
     # OLS regression
     X = np.log(data[index])
-    X = sm.add_constant(X)   
+    X = sm.add_constant(X)
     Y = np.log(data['Rt'])
+    print(len(Y))
+    print(len(X))
     model = sm.OLS(Y,X)
     results = model.fit()
     print(results.params)
-    
+
     # Plot 
     plt.figure()
     plt.scatter(X[index], Y, [2] * len(Y) )
