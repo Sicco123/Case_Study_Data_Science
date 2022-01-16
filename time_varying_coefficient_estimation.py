@@ -55,7 +55,6 @@ def tv_ll_regression(y, X, steps, h):
     This methods performs time varying local linear regression and returns the results
     """
 
-    h = 1  # bandwidth
     t_i = steps
 
     # create (n x n)-matrix K
@@ -94,6 +93,22 @@ def transform_data(y, X):
     X_log = np.log(X)
     return y_log, X_log
 
+def fit_sin_simulation():
+    # initialisation
+    # simulate n = 200 datapoints. x = (x_1, ..., x_n)' and y = (y_1, ..., y_n)'
+    X = np.random.uniform(low=0, high=6, size=(200,))  # x_i ~ Uniform(0,6)
+    y = np.sin(X) + np.random.normal(scale=0.5, size=(200,))  # y_i ~ N(sin(x_i), 0.5)
+
+    steps = np.random.uniform(low=0, high=6, size=(600,))  # x_i ~ Uniform(0,6)
+    start_time = time.process_time()
+    steps.sort()
+    results = tv_ll_regression(y, X, steps, 1)
+    end_time = time.process_time()
+
+    print(f'The local linear regression takes {end_time-start_time}')
+    # results
+    plot_results(np.sin(steps), results[:,0], steps, X, y, 'Sin simulation')
+
 
 def plot_results(y, y_pred, X, X_sim, y_sim, index_name):
     """
@@ -115,7 +130,7 @@ def plot_results(y, y_pred, X, X_sim, y_sim, index_name):
     plt.show()
 
 
-def main():
+def main(simulation=True):
     # read data
     source = 'reproduction_vs_index_Japan.pkl'
     with open(source, 'rb') as f:
@@ -124,26 +139,23 @@ def main():
     data = raw.dropna()  # removes nans
     regressor_names = ['StringencyIndex']#, 'GovernmentResponseIndex', 'ContainmentHealthIndex']
 
-    for index in regressor_names:
-        # initialisation
-        # simulate n = 200 datapoints. x = (x_1, ..., x_n)' and y = (y_1, ..., y_n)'
-        X = np.random.uniform(low=0, high=6, size=(200,))  # x_i ~ Uniform(0,6)
-        y = np.sin(X) + np.random.normal(scale=0.5, size=(200,))  # y_i ~ N(sin(x_i), 0.5)
+    if simulation:
+        fit_sin_simulation()
+    else:
+        y_log, X_log = transform_data(data['Rt'], data['StringencyIndex'])
+        y_log, X_log = np.array(y_log), np.array(X_log)
+        steps = np.array(data['time_index']/len(data))
+        results = tv_ll_regression(y_log, X_log, steps, 1)
+        plot_results(X=data['Date'],
+                     y_pred=results[:,1],
+                     X_sim=None,
+                     y_sim = None,
+                     index='StringencyIndex')
 
 
-        # estimation
-        #y, X = transform_data(data['Rt'], data[index])
+    # for index in regressor_names:
 
-        steps = np.random.uniform(low=0, high=6, size=(600,))  # x_i ~ Uniform(0,6)
-        start_time = time.process_time()
-        steps.sort()
-        results = tv_ll_regression(y, X, steps, 1)
-        end_time = time.process_time()
-
-        print(f'The local linear regression takes {end_time-start_time}')
-        # results
-        plot_results(np.sin(steps), results[:,0], steps, X, y,index)
 
 
 if __name__ == "__main__":
-    main()
+    main(simulation=False)
