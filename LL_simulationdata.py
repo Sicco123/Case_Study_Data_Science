@@ -1,5 +1,7 @@
 
 import numpy as np
+import pandas as pd
+import pickle
 import matplotlib.pyplot as plt
 import time
 #%%
@@ -15,10 +17,15 @@ def kernel_function(u):
     return res
 
 #%%
+source = 'reproduction_vs_index_Japan.pkl'
+with open(source, 'rb') as f:
+    raw = pickle.load(f)
+
+data = raw.dropna()    #removes nans
 
 # simulate n = 200 datapoints. x = (x_1, ..., x_n)' and y = (y_1, ..., y_n)'
-x = np.random.uniform(low = 0, high = 6, size = (200, ))      # x_i ~ Uniform(0,6)
-y = np.sin(x) + np.random.normal(scale =0.5, size = (200, ))  # y_i ~ N(sin(x_i), 0.5) 
+x = data['StringencyIndex'].values#np.random.uniform(low = 0, high = 6, size = (200, ))      # x_i ~ Uniform(0,6)
+y = data['Rt'].values#np.sin(x) + np.random.normal(scale =0.5, size = (200, ))  # y_i ~ N(sin(x_i), 0.5)
 
 def LL(a):
     """
@@ -27,12 +34,15 @@ def LL(a):
     for clarification see slides 15-17 in # https://faculty.washington.edu/ezivot/econ582/nonparametricregression.pdf 
     """
 
-    h =  1  # bandwidth
+    h =  0.6  # bandwidth
     
     # create (n x n)-matrix K
     k_i = lambda t: kernel_function((t - a) / h)
     vfunc = np.vectorize(k_i, otypes=[float])
-    K = vfunc(x)
+
+
+    t_array = np.arange(0, len(x),1)/len(x)
+    K = vfunc(t_array)
 
     K = np.diag(K)
 
@@ -51,18 +61,21 @@ def LL(a):
 
 # Create points (x2,y2) which are used to plot the LL curve
 
-x2 = np.random.uniform(low = 0, high = 6, size = (10000, ))
-start_time = time.process_time()
+
+x2 = np.random.uniform(low = 0, high = 1, size = (10000, ))
 x2.sort()
+
+
 y2 = LL(x2[0])
+
 
 for i in range(1,len(x2)):
     y2 = np.vstack((y2,LL(x2[i])))
-end_time = time.process_time()
-print(f'The local linear regression takes {end_time-start_time}')
-# Plot    
+
+# Plot
 plt.figure() 
-plt.plot(x2, y2[:,0])                # plot local linear estimator 
-plt.scatter(x,y,[3]*len(y))          # plot simulated data points
-plt.plot(x2, np.sin(x2), color ="red")# plot true function = sin(x)
+plt.plot(y2[:,0])
+#plt.plot(x, y2[:,0])                # plot local linear estimator
+#plt.scatter(x,y,[3]*len(y))          # plot simulated data points
+#plt.plot(x2, np.sin(x2), color ="red")# plot true function = sin(x)
 plt.show()
