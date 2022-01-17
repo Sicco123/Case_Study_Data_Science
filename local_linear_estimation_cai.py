@@ -68,14 +68,13 @@ def main():
         raw = pickle.load(f)
 
     data = raw.dropna()  # removes nans
-    data = data.iloc[0:458]  # bad slicing, works for now
     y_log, X_log = transform_data(data['Rt'], data['StringencyIndex'])
     y_log, X_log = np.array(y_log), np.array(X_log)
     X = np.vstack((np.ones((1, len(X_log))), X_log.reshape(1, -1)))
     steps = np.random.uniform(low=0, high=1, size=(1000,))
     steps.sort()
     time_steps = np.array(data['time_index'] / len(data))
-    h = 0.09
+    h = 0.005
     theta_all = np.empty((len(steps), 2))
     for i, step in enumerate(tqdm(steps)):
         result = compute_theta(X, y_log, time_steps, step, h)
@@ -87,12 +86,11 @@ def main():
     plt.title('beta 1')
     plt.show()
 
-    y_pred = np.dot(X.T, theta_all.T)
-    plt.title('y pred')
-    y_pred = np.diagonal(y_pred)
-
-    plt.plot(y_pred)
-    plt.show()
+    # y_pred = np.dot(X.T, theta_all.T)
+    # y_pred = np.diagonal(y_pred)
+    # plt.title('y pred')
+    # plt.plot(y_pred)
+    # plt.show()
 
 
 if __name__ == '__main__':
