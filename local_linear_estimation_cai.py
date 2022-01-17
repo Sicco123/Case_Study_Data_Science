@@ -7,6 +7,19 @@ from tqdm import tqdm
 
 np.random.seed(2022)
 
+def get_and_prepare_data():
+    source = 'reproduction_vs_index_Japan.pkl'
+    with open(source, 'rb') as f:
+        raw = pickle.load(f)
+
+    data = raw.dropna()  # removes nans
+    y_log, X_log = transform_data(data['Rt'], data['StringencyIndex'])
+    y_log, X_log = np.array(y_log), np.array(X_log)
+    X = np.vstack((np.ones((1, len(X_log))), X_log.reshape(1, -1)))
+
+    time_steps = np.array(data['time_index'] / len(data))
+
+    return y_log, X, time_steps
 
 def kernel_function(u):
     """
@@ -21,26 +34,28 @@ def kernel_function(u):
     return res
 
 
+def compute_weight(k, time_steps, tau, h):
+    t_array = time_steps - tau
+    k_i = lambda t: kernel_function(t / h)
+    vfunc = np.vectorize(k_i, otypes=[float])
+    K = vfunc(t_array)
+    weight = (t_array ** k) * (K / h)
+
+    return weight
+
+
 def compute_S(X, k, time_steps, tau, h):
     n = len(time_steps)
-    sum = 0
-    for i in range(n):
-        weight = ((time_steps[i] - tau) ** k) * (kernel_function((time_steps[i] - tau) / h) / h)
-        sum += np.matmul(X[:, i].reshape(-1, 1), X[:, i].reshape(-1, 1).T) * weight
-
-    S = sum / n
+    weight = compute_weight(k, time_steps, tau, h)
+    S = (1 / n) * np.matmul(X, X.T * weight.reshape(-1, 1))
 
     return S
 
 
 def compute_T(X, Y, k, time_steps, tau, h):
     n = len(time_steps)
-    sum = 0
-    for i in range(n):
-        weight = ((time_steps[i] - tau) ** k) * (kernel_function((time_steps[i] - tau) / h) / h)
-        sum += X[:, i].reshape(-1, 1) * weight * Y[i]
-
-    T = sum / n
+    weight = compute_weight(k, time_steps, tau, h)
+    T = (1 / n) * np.matmul(X, (weight * Y).reshape(-1, 1))
 
     return T
 
@@ -61,28 +76,23 @@ def compute_theta(X, Y, time_steps, tau, h):
 
     return theta
 
-
-def main():
-    source = 'reproduction_vs_index_Japan.pkl'
-    with open(source, 'rb') as f:
-        raw = pickle.load(f)
-
-    data = raw.dropna()  # removes nans
-    y_log, X_log = transform_data(data['Rt'], data['StringencyIndex'])
-    y_log, X_log = np.array(y_log), np.array(X_log)
-    X = np.vstack((np.ones((1, len(X_log))), X_log.reshape(1, -1)))
-    steps = np.random.uniform(low=0, high=1, size=(1000,))
-    steps.sort()
-    time_steps = np.array(data['time_index'] / len(data))
-    h = 0.005
+def local_linear_estimation(y, X, time_steps, steps, h):
     theta_all = np.empty((len(steps), 2))
     for i, step in enumerate(tqdm(steps)):
-        result = compute_theta(X, y_log, time_steps, step, h)
+        result = compute_theta(X, y, time_steps, step, h)
         theta_all[i] = result[:2].T
 
-    print(theta_all[:, 1])
+    return theta_all
 
-    plt.plot(theta_all[:, 1])
+def main():
+    y, X, time_steps = get_and_prepare_data()
+    steps = np.random.uniform(low=0, high=1, size=(1000,))
+    steps.sort()
+
+    h = 0.15
+
+    theta_estimate = local_linear_estimation(y, X, time_steps, steps, h)
+    plt.plot(theta_estimate[:, 1])
     plt.title('beta 1')
     plt.show()
 
