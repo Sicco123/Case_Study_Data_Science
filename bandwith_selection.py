@@ -80,7 +80,7 @@ def compute_aic(y, X, theta_estimate, time_steps, h):
     middle = np.matmul((np.identity(n)-S_star).T, (np.identity(n)-S_star))
     RSS = np.matmul(y.reshape(-1, 1).T, np.matmul(middle, y.reshape(-1,1)))
 
-    aic = math.log(RSS) + ((n + n_h) / (n - n_h - 2))
+    aic = math.log(RSS) + (2*(1 + n_h) / (n - n_h - 2))
 
     return aic
 
@@ -98,7 +98,7 @@ def main():
         results.append((bw, aic))
         print(f'AIC for bw of {bw} = {aic}')
 
-    with open('bw_selection.pkl', 'wb') as f:
+    with open('bw_selection_2007.pkl', 'wb') as f:
         pickle.dump(results, f)
 
 if __name__ == '__main__':

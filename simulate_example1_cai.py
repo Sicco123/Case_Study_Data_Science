@@ -15,7 +15,7 @@ import math as ms
 import matplotlib.pyplot as plt
 #from tqdm import tqdm 
 from local_linear_estimation_cai import kernel_function, compute_S, compute_T, compute_theta, local_linear_estimation
-from bandwidth import compute_W, compute_X_tilde, compute_A, compute_n_h, compute_aic
+from bandwith_selection import compute_W, compute_X_tilde, compute_A, compute_n_h, compute_aic
 
 
 def beta_0(t):
