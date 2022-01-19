@@ -96,11 +96,12 @@ def main():
     plt.title('beta 1')
     plt.show()
 
-    # y_pred = np.dot(X.T, theta_all.T)
-    # y_pred = np.diagonal(y_pred)
-    # plt.title('y pred')
-    # plt.plot(y_pred)
-    # plt.show()
+    y_pred = np.dot(X.T, theta_estimate.T)
+    y_pred = np.diagonal(y_pred)
+    plt.title('y pred')
+    plt.plot(y_pred)
+    plt.scatter(time_steps*458, y, s=1, color='red')
+    plt.show()
 
 
 if __name__ == '__main__':

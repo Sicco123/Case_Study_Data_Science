@@ -58,26 +58,33 @@ def compute_n_h(X, time_steps, h):
         A = compute_A(X, time_steps, t, h)
         S_star.append(np.matmul(A.T, X[i]))
 
-    S_star = np.stack(S_star).T
+    S_star = np.stack(S_star)
     n_h = np.trace(S_star)
 
-    return n_h
+
+    return n_h, S_star
 
 
 def compute_aic(y, X, theta_estimate, time_steps, h):
     n = len(y)
-    y_pred = np.dot(X.T, theta_estimate.T)
-    y_pred = np.diagonal(y_pred)
-    sigma_sq = ((y - y_pred) ** 2).mean()
-    n_h = compute_n_h(X.T, time_steps, h)
+    # y_pred = np.dot(X.T, theta_estimate.T)
+    # y_pred = np.diagonal(y_pred)
+    # sigma_sq = ((y - y_pred) ** 2).mean()
+    n_h, S_star = compute_n_h(X.T, time_steps, h)
+    #
+    # aic = math.log(sigma_sq) + (2 * (n_h + 1) / (n - n_h - 2))
 
-    aic = math.log(sigma_sq) + (2 * (n_h + 1) / (n - n_h - 2))
+
+    middle = np.matmul((np.identity(n)-S_star).T, (np.identity(n)-S_star))
+    RSS = np.matmul(y.reshape(-1, 1).T, np.matmul(middle, y.reshape(-1,1)))
+
+    aic = math.log(RSS) + ((n + n_h) / (n - n_h - 2))
 
     return aic
 
 
 def main():
-    bandwidth_values = [0.15, 0.2, 0.1, 0.05]
+    bandwidth_values = np.linspace(0.01, 1, 100)
     y, X, time_steps = get_and_prepare_data()
     steps = np.random.uniform(low=0, high=1, size=(1000,))
     steps.sort()
