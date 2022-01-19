@@ -8,15 +8,13 @@ Description: In this file we perform a simulation study. We simulate y and X usi
 """
 
 
-from datetime import datetime 
-start = datetime.now()
+#from datetime import datetime 
 import numpy as np
 import math as ms
 import matplotlib.pyplot as plt
-#from tqdm import tqdm 
 from local_linear_estimation_cai import kernel_function, compute_S, compute_T, compute_theta, local_linear_estimation
-from bandwidth import compute_W, compute_X_tilde, compute_A, compute_n_h, compute_aic
-
+from bandwith_selection import compute_W, compute_X_tilde, compute_A, compute_n_h, compute_aic
+import pandas as pd
 
 def beta_0(t):
     """
@@ -32,10 +30,6 @@ def beta_1(t):
 
 
 
-time = np.asarray([i for i in range(1,401)])
-
-
-
 def simulate_example_1():
     """
     see example 1 Cai 2007
@@ -48,9 +42,7 @@ def simulate_example_1():
     rho_x = 0.9
     rho_u = 0.8
      
-    x = np.zeros(n + 1)
-    u = np.zeros(n + 1)
-    y = np.zeros(n + 1)
+    x, u, y  = np.zeros(n + 1), np.zeros(n + 1), np.zeros(n + 1)
     
     for i in range(1, n + 1):
     
@@ -67,6 +59,7 @@ def simulate_example_1():
     y = np.delete(y,0)
     
     X = np.vstack((np.ones((1, len(x))), x.reshape(1, -1)))
+    time = np.asarray([i for i in range(1, n + 1)])
     time_steps = np.array(time / len(time))
     
     return (y, X, time_steps)
@@ -76,24 +69,24 @@ def simulate_example_1():
 def get_bandwidth_aic(y, X, time_steps, steps):
     """
     get_bandwidth_aic: on the basis of the AIC it returns the optimal bandwidth in "h_opt",
-                       but it also returns the theta estimates of LL for this optimal bandwidth in "theta_hopt"
+                        but it also returns the theta estimates of LL for this optimal bandwidth
+                        in "theta_hopt".
                     y: array of size (n,)   
                     X: array of size (2,n)
-           time_steps: array of size (n,)
-                steps: array of size (1000,)
+            time_steps: array of size (n,)
+                steps: array of size ?
     """
-    bandwidth_values = [0.1 + i * 0.025 for i in range(25)]
+    bandwidth_values = [0.01 + i * 0.0025 for i in range(4)]
     
     # Lists to store the theta estimates and aics  
     lst_theta_estimate = []
     lst_aic = []
     
     for bw in bandwidth_values:
-        
         theta_estimate = local_linear_estimation(y, X, time_steps, steps, bw)
         lst_theta_estimate += [theta_estimate]
         aic = compute_aic(y, X, theta_estimate, time_steps, bw)
-        lst_aic = lst_aic + [[bw, aic]]
+        lst_aic += [[bw, aic]]
         
     # h_opt = optimal bandwidth
     # theta_hopt = theta estimates of LL for this optimal bandwidth
@@ -104,22 +97,51 @@ def get_bandwidth_aic(y, X, time_steps, steps):
     return h_opt, theta_hopt
 
 
+# def get_bandwidth_aic2(y, X, time_steps, steps):
+#     """
+#     get_bandwidth_aic: on the basis of the AIC it returns the optimal bandwidth in "h_opt",
+#                        but it also returns the theta estimates of LL for this optimal bandwidth
+#                        in "theta_hopt".
+#                     y: array of size (n,)   
+#                     X: array of size (2,n)
+#            time_steps: array of size (n,)
+#                 steps: array of size ?
+#     """
+#     bandwidth_values = [0.01 + i * 0.0025 for i in range(4)]
+    
+#     column_names = ["bandwidth", "theta estimates", "AIC"]
+#     df = pd.DataFrame(columns = column_names)
+    
+#     for bw in bandwidth_values:
+#         theta_estimate = local_linear_estimation(y, X, time_steps, steps, bw)
+#         #print(compute_aic(y, X, theta_estimate, time_steps, bw))
+#         #print([[bw], [theta_estimate], [compute_aic(y, X, theta_estimate, time_steps, bw)]])
+#         row = np.array([bw, [theta_estimate], compute_aic(y, X, theta_estimate, time_steps, bw)]).resize(1,3)
+#         print(row)
+#         #print(theta_estimate)
+#         df = df.append(pd.DataFrame(row, columns = column_names), ignore_index= True)
+    
+#     #print(df)
+#     i = df.index[df['AIC'] == min(df['AIC'])].tolist()
+    
+#     return float(df.loc[i]["bandwidth"]), float(df.loc[i]["theta estimates"])
 
-def perform_multiple_LL(number, steps):
+
+
+def perform_multiple_LL(number):
     """
     perform_multiple_LL: simulates "number"-times data; for each simulation dataset we 
-                         get the optimal bandwidth and its corresponding estimates of beta_0 and beta_1
-                         using "get_bandwidth_aic" function. The results are stored and returned in a list "store"
+                         get the optimal bandwidth and its corresponding estimates of 
+                         beta_0 and beta_1  using "get_bandwidth_aic" function. The 
+                         results are stored and returned in a list "store".
                 number:  integer 
-                steps :  array of size (1000,)
                          
     """
     store = []
     h_store = []
     for i in range(number):
-        
         y, X, time_steps = simulate_example_1()
-        h_opt, theta_hopt = get_bandwidth_aic(y, X, time_steps, steps)
+        h_opt, theta_hopt = get_bandwidth_aic(y, X, time_steps, time_steps)
         store += [theta_hopt]
         h_store += [h_opt]
         
@@ -127,33 +149,44 @@ def perform_multiple_LL(number, steps):
 
 
 
+def do_LL_for_specific_bw(number, bw):
+    
+    store_theta  = []
+    store_timesteps = []
+    for i in range(number):
+        y, X, time_steps = simulate_example_1()
+        store_theta += [local_linear_estimation(y, X, time_steps, time_steps, bw)]
+        store_timesteps += [time_steps]
+        
+        
+    return store_theta, store_timesteps
+
+# def do_LL_for_specific_bw2(number, bw):
+    
+#     store_theta, store_timesteps   = ([],[])
+
+#     for i in range(number):
+#         y, X, time_steps = simulate_example_1()
+#         store_theta, store_timesteps = (store_theta + [local_linear_estimation(y, X, time_steps, time_steps, bw)], store_timesteps + [time_steps])
+
+#     return store_theta, store_timesteps
+
+
 
 def main():
-    # steps = np.random.uniform(low = 0, high = 1, size=(1000, ))
-    # steps.sort()
-    
-    # store_theta_estimate = perform_multiple_LL(2, steps)
-    
-    # p_i = lambda t: beta_1(t) 
-    # vfun = np.vectorize(p_i, otypes=[float])
-      
-    # for ar in store_theta_estimate:
-    #      plt.figure()
-    #      plt.plot(steps,ar[:,1])
-    #      plt.plot(steps,vfun(steps))  
-    print("niks")
-
-if __name__ == '__main__':
-    steps = np.random.uniform(low = 0, high = 1, size=(1000, ))
-    steps.sort()
-    
-    store_theta_estimate, h_store = perform_multiple_LL(2, steps)
     
     p_i = lambda t: beta_1(t) 
     vfun = np.vectorize(p_i, otypes=[float])
-      
-    for ar in store_theta_estimate:
-          plt.figure()
-          plt.plot(steps,ar[:,1])
-          plt.plot(steps,vfun(steps))  
+    
+    curve_estimates_1, lst_timesteps = do_LL_for_specific_bw(2, 0.275)
+    curve_estimates_2, h_store = perform_multiple_LL(2)
+    
+    plt.figure()
+    for curve, time_steps in zip(curve_estimates_1, lst_timesteps):
+        plt.plot(time_steps, curve[:,1], color = "green")
+        plt.plot(time_steps, vfun(time_steps), color = "red") 
+        
+    
 
+if __name__ == '__main__':
+    main()
