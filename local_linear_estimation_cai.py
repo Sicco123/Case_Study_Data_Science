@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import pickle
-from time_varying_coefficient_estimation import transform_data
+from Junk.time_varying_coefficient_estimation import transform_data
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
@@ -78,7 +78,7 @@ def compute_theta(X, Y, time_steps, tau, h):
 
 def local_linear_estimation(y, X, time_steps, steps, h):
     theta_all = np.empty((len(steps), 2))
-    for i, step in enumerate(tqdm(steps)):
+    for i, step in enumerate(steps):
         result = compute_theta(X, y, time_steps, step, h)
         theta_all[i] = result[:2].T
 

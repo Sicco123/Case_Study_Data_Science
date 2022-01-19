@@ -14,6 +14,8 @@ from local_linear_estimation_cai import get_and_prepare_data
 from local_linear_estimation_cai import local_linear_estimation
 from local_linear_estimation_cai import kernel_function
 import math
+import pickle
+from tqdm import tqdm
 
 
 def compute_W(time_steps, t, h):
@@ -88,13 +90,16 @@ def main():
     y, X, time_steps = get_and_prepare_data()
     steps = np.random.uniform(low=0, high=1, size=(1000,))
     steps.sort()
+    results = []
 
-    for bw in bandwidth_values:
+    for bw in tqdm(bandwidth_values):
         theta_estimate = local_linear_estimation(y, X, time_steps, steps, bw)
         aic = compute_aic(y, X, theta_estimate, time_steps, bw)
-
+        results.append((bw, aic))
         print(f'AIC for bw of {bw} = {aic}')
 
+    with open('bw_selection.pkl', 'wb') as f:
+        pickle.dump(results, f)
 
 if __name__ == '__main__':
     main()
