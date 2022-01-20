@@ -26,6 +26,7 @@ def beta_1(t):
     """function β₁(t)"""
     return 2 * t + ms.exp(-16 * (t - 0.5) ** 2) - 1
 
+vbeta_0 = np.vectorize(beta_0, otypes=[float])
 vbeta_1 = np.vectorize(beta_1, otypes=[float])
 
 
@@ -119,7 +120,8 @@ def perform_multiple_LL(number):
 
 def do_LL_for_specific_bw(number, bw):
     """
-    do_LL_for_specific_bw: Returns a specific
+    do_LL_for_specific_bw: Returns a specific..
+                          .....
                 
     """
     store_theta  = []
@@ -148,10 +150,25 @@ def main():
     
     
     plt.figure()
-    for curve, time_steps in zip(curve_estimates_1, lst_timesteps):
-        plt.plot(time_steps, curve[:,1], color = "green")
-        plt.plot(time_steps, vbeta_1(time_steps), color = "red") 
+    fig, (ax1, ax2) = plt.subplots(1, 2, constrained_layout = True)
+    fig.set_size_inches(14, 6)
+
+    for curve, time_steps in zip(curve_estimates_1, lst_timesteps): 
+        ax1.plot(time_steps, curve[:,0], color = "green")
+        ax1.plot(time_steps, vbeta_0(time_steps), color = "red") 
+        ax1.set_ylabel('beta_0(t)', fontsize=16)
+        ax1.set_xlabel('t', fontsize=16)
+        ax1.tick_params(axis='both', which='major', labelsize=14)
+
         
+        ax2.plot(time_steps, curve[:,1], color = "green")
+        ax2.plot(time_steps, vbeta_1(time_steps), color = "red") 
+        ax2.set_ylabel('beta_1(t)', fontsize=16)
+        ax2.set_xlabel('t', fontsize=16)
+        ax2.tick_params(axis='both', which='major', labelsize = 14)
+        
+    #custom legend link : https://matplotlib.org/3.1.1/gallery/text_labels_and_annotations/custom_legends.html
+ 
     return lst_made
 
 if __name__ == '__main__':
