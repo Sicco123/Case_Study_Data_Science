@@ -15,6 +15,14 @@ import local_linear_estimation_cai as ll_estimation
 import multiprocessing
 import time
 
+
+def two_point(B, n):
+    normal_draws =  np.random.normal(0,1,size = (B, n))
+    normal_draws[np.where(normal_draws < 0)] = -1
+    normal_draws[np.where(normal_draws >= 0)] = 1
+    two_point_draws = normal_draws
+    return two_point_draws
+
 def simulate_y(y_pred, residuals, B):
     normal_draws = np.random.normal(0,1,size = (B, len(y_pred)))
 
@@ -36,9 +44,32 @@ def local_linear_estimation(arguments):
 
     return theta_all
 
+
+def bootstrap_procedure(y_pred, residuals, beta_estimate, B, steps, time_steps, y, X, bandwith):
+    beta_bootstrap = np.zeros(((B + 1), len(beta_estimate)))
+    beta_bootstrap[0, :] = beta_estimate
+    y_simulated = simulate_y(y_pred, residuals, B)
+
+    X_repeat = [X] * B
+    time_steps_repeat = [time_steps] * B
+    steps_repeat = [steps] * B
+    bandwith_repeat = [bandwith] * B
+    input = zip(y_simulated, X_repeat, time_steps_repeat, steps_repeat, bandwith_repeat)
+
+    a_pool = multiprocessing.Pool(processes=8)
+    result = a_pool.map(local_linear_estimation, input)
+
+    for b, res in enumerate(result):
+        beta_bootstrap[b + 1, :] = res[:, 1]
+
+    return beta_bootstrap
+
 def plot_beta_CI(x, beta_observed, beta_bootstrap, alpha, B):
     quantile_1 = int(0.5*alpha*(B+1))
-    quantile_2 = int(0.5*(1-alpha)*(B+1))
+    quantile_2 = int((1-0.5*alpha)*(B+1))
+
+    print(quantile_1)
+    print(quantile_2)
 
     beta_bootstrap.sort(axis = 0)
     beta_bootstrap_q1 = beta_bootstrap[quantile_1,:]
@@ -49,6 +80,7 @@ def plot_beta_CI(x, beta_observed, beta_bootstrap, alpha, B):
     ax.fill_between(x, beta_bootstrap_q1, beta_bootstrap_q2, color='r', alpha=.1)
     ax.set_title('Time Varying Estimates', fontweight='bold', fontsize=18)
     fig.savefig('plots/Bootstraped_Confidence_Intervals_Time_Varying_Estimates')
+    plt.show()
 
 def main():
     bandwith = 0.2
@@ -65,36 +97,7 @@ def main():
     residuals = y - y_pred
     beta_estimate = theta_estimate[:, 1]
 
-
-    beta_bootstrap = np.zeros(((B+1),len(beta_estimate)))
-    beta_bootstrap[0,:] = beta_estimate
-    y_simulated = simulate_y(y_pred, residuals, B)
-
-    #plt.plot(y_simulated[1,:])
-    #plt.plot(y)
-    #plt.show()
-
-    X_repeat = [X]*B
-    time_steps_repeat = [time_steps]*B
-    steps_repeat = [steps]*B
-    bandwith_repeat = [bandwith]*B
-    input = zip(y_simulated, X_repeat, time_steps_repeat, steps_repeat, bandwith_repeat)
-
-    start_time = time.time()
-    a_pool = multiprocessing.Pool(processes= 8)
-    result = a_pool.map(local_linear_estimation,input)
-
-    for b, res in enumerate(result):
-        beta_bootstrap[b+1, :] = res[:,1]
-    end_time = time.time()
-    print(end_time-start_time)
-    #print(beta_bootstrap)
-    #for b in range(B):
-    #    print(b)
-    #    theta_bootstrap_b = ll_estimation.local_linear_estimation(y_simulated[b,:], X, time_steps, steps, bandwith)
-    #    beta_bootstrap_b = theta_bootstrap_b[:,1]
-    #    beta_bootstrap[(b+1),:] = beta_bootstrap_b
-
+    beta_bootstrap = bootstrap_procedure(y_pred, residuals, beta_estimate, B, steps, time_steps, y, X, bandwith)
 
     plot_beta_CI(time_steps, beta_estimate, beta_bootstrap, alpha, B)
 
