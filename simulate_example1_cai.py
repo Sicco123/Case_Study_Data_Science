@@ -8,26 +8,25 @@ Description: In this file we perform a simulation study. We simulate y and X usi
 """
 
 
-#from datetime import datetime 
+from datetime import datetime 
+import pickle
 import numpy as np
 import math as ms
 import matplotlib.pyplot as plt
 from local_linear_estimation_cai import kernel_function, compute_S, compute_T, compute_theta, local_linear_estimation
 from bandwith_selection import compute_W, compute_X_tilde, compute_A, compute_n_h, compute_aic
+
 import pandas as pd
 
 def beta_0(t):
-    """
-    function β₀(t)
-    """
+    """ function β₀(t) """
     return 0.2 * ms.exp(-0.7 + 3.5 * t)
 
 def beta_1(t):
-    """
-    function β₁(t)
-    """
+    """function β₁(t)"""
     return 2 * t + ms.exp(-16 * (t - 0.5) ** 2) - 1
 
+vbeta_1 = np.vectorize(beta_1, otypes=[float])
 
 
 def simulate_example_1():
@@ -97,37 +96,6 @@ def get_bandwidth_aic(y, X, time_steps, steps):
     return h_opt, theta_hopt
 
 
-# def get_bandwidth_aic2(y, X, time_steps, steps):
-#     """
-#     get_bandwidth_aic: on the basis of the AIC it returns the optimal bandwidth in "h_opt",
-#                        but it also returns the theta estimates of LL for this optimal bandwidth
-#                        in "theta_hopt".
-#                     y: array of size (n,)   
-#                     X: array of size (2,n)
-#            time_steps: array of size (n,)
-#                 steps: array of size ?
-#     """
-#     bandwidth_values = [0.01 + i * 0.0025 for i in range(4)]
-    
-#     column_names = ["bandwidth", "theta estimates", "AIC"]
-#     df = pd.DataFrame(columns = column_names)
-    
-#     for bw in bandwidth_values:
-#         theta_estimate = local_linear_estimation(y, X, time_steps, steps, bw)
-#         #print(compute_aic(y, X, theta_estimate, time_steps, bw))
-#         #print([[bw], [theta_estimate], [compute_aic(y, X, theta_estimate, time_steps, bw)]])
-#         row = np.array([bw, [theta_estimate], compute_aic(y, X, theta_estimate, time_steps, bw)]).resize(1,3)
-#         print(row)
-#         #print(theta_estimate)
-#         df = df.append(pd.DataFrame(row, columns = column_names), ignore_index= True)
-    
-#     #print(df)
-#     i = df.index[df['AIC'] == min(df['AIC'])].tolist()
-    
-#     return float(df.loc[i]["bandwidth"]), float(df.loc[i]["theta estimates"])
-
-
-
 def perform_multiple_LL(number):
     """
     perform_multiple_LL: simulates "number"-times data; for each simulation dataset we 
@@ -150,43 +118,43 @@ def perform_multiple_LL(number):
 
 
 def do_LL_for_specific_bw(number, bw):
-    
+    """
+    do_LL_for_specific_bw: Returns a specific
+                
+    """
     store_theta  = []
     store_timesteps = []
+    store_made = []
+    
     for i in range(number):
         y, X, time_steps = simulate_example_1()
-        store_theta += [local_linear_estimation(y, X, time_steps, time_steps, bw)]
+        theta_estimate = local_linear_estimation(y, X, time_steps, time_steps, bw)
+        store_theta += [theta_estimate]
         store_timesteps += [time_steps]
+        store_made += [MADE(theta_estimate[:,1], vbeta_1(time_steps))]
         
-        
-    return store_theta, store_timesteps
+    return store_theta, store_timesteps, store_made
 
-# def do_LL_for_specific_bw2(number, bw):
+
+def MADE(beta_hat, beta):
+    """MADE: calculates the MADE which is defined as MADE = ..."""
+    return np.sum(abs(beta_hat - beta)) / len(beta_hat)
     
-#     store_theta, store_timesteps   = ([],[])
-
-#     for i in range(number):
-#         y, X, time_steps = simulate_example_1()
-#         store_theta, store_timesteps = (store_theta + [local_linear_estimation(y, X, time_steps, time_steps, bw)], store_timesteps + [time_steps])
-
-#     return store_theta, store_timesteps
-
-
 
 def main():
     
-    p_i = lambda t: beta_1(t) 
-    vfun = np.vectorize(p_i, otypes=[float])
+    curve_estimates_1, lst_timesteps, lst_made = do_LL_for_specific_bw(50, 0.275)
+    #curve_estimates_2, h_store = perform_multiple_LL(500)
     
-    curve_estimates_1, lst_timesteps = do_LL_for_specific_bw(2, 0.275)
-    curve_estimates_2, h_store = perform_multiple_LL(2)
     
     plt.figure()
     for curve, time_steps in zip(curve_estimates_1, lst_timesteps):
         plt.plot(time_steps, curve[:,1], color = "green")
-        plt.plot(time_steps, vfun(time_steps), color = "red") 
+        plt.plot(time_steps, vbeta_1(time_steps), color = "red") 
         
-    
+    return lst_made
 
 if __name__ == '__main__':
-    main()
+    start = datetime.now()
+    result = main()
+    print(datetime.now() - start)
