@@ -3,7 +3,7 @@ Authors: Jamie Rutgers, Mirte Pruppers, Damiaan Bonnet, Sicco Kooiker
 Name: static_coefficient_estimation.py
 Date: 12-1-2022
 Desription: In this file we give a wild bootstrap procedure to obtain confidence intervals
-for the time varying coefficient estimates. 
+for the time varying coefficient estimates.
 """
 import pandas as pd
 import numpy as np
@@ -65,6 +65,7 @@ def main():
     residuals = y - y_pred
     beta_estimate = theta_estimate[:, 1]
 
+
     beta_bootstrap = np.zeros(((B+1),len(beta_estimate)))
     beta_bootstrap[0,:] = beta_estimate
     y_simulated = simulate_y(y_pred, residuals, B)
@@ -73,17 +74,29 @@ def main():
     #plt.plot(y)
     #plt.show()
 
+    X_repeat = [X]*B
+    time_steps_repeat = [time_steps]*B
+    steps_repeat = [steps]*B
+    bandwith_repeat = [bandwith]*B
+    input = zip(y_simulated, X_repeat, time_steps_repeat, steps_repeat, bandwith_repeat)
 
     start_time = time.time()
-    for b in range(B):
-       print(b)
-       theta_bootstrap_b = ll_estimation.local_linear_estimation(y_simulated[b,:], X, time_steps, steps, bandwith)
-       beta_bootstrap_b = theta_bootstrap_b[:,1]
-       beta_bootstrap[(b+1),:] = beta_bootstrap_b
-    end_time = time.time()
+    a_pool = multiprocessing.Pool(processes= 8)
+    result = a_pool.map(local_linear_estimation,input)
 
-    print(end_time - start_time)
-    #plot_beta_CI(time_steps, beta_estimate, beta_bootstrap, alpha, B)
+    for b, res in enumerate(result):
+        beta_bootstrap[b+1, :] = res[:,1]
+    end_time = time.time()
+    print(end_time-start_time)
+    #print(beta_bootstrap)
+    #for b in range(B):
+    #    print(b)
+    #    theta_bootstrap_b = ll_estimation.local_linear_estimation(y_simulated[b,:], X, time_steps, steps, bandwith)
+    #    beta_bootstrap_b = theta_bootstrap_b[:,1]
+    #    beta_bootstrap[(b+1),:] = beta_bootstrap_b
+
+
+    plot_beta_CI(time_steps, beta_estimate, beta_bootstrap, alpha, B)
 
 
 if __name__ == "__main__":
