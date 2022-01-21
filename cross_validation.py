@@ -86,7 +86,7 @@ def local_linear_estimation(y, X, time_steps, steps, h):
     return theta_all
 
 def cross_validation_bandwith(u1, u2, y, X, steps, time_steps):
-    h_array = np.arange(u1, u2, (u1-u2)/10) # 10 steps
+    h_array = np.arange(u1, u2, (u2-u1)/10) # 10 steps
 
     log_lik_opt = 100000
     for h in h_array:
@@ -107,7 +107,7 @@ def cross_validation_bandwith(u1, u2, y, X, steps, time_steps):
 
         print(f'The log likelihood of bandwith ({h}) = {log_likelihood}')
 
-    return h
+    return h_opt
 
 def main():
     y, X, time_steps = get_and_prepare_data()
