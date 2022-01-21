@@ -13,9 +13,11 @@ import pickle
 import numpy as np
 import math as ms
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
+#from matplotlib import rcParams, cycler
 from local_linear_estimation_cai import kernel_function, compute_S, compute_T, compute_theta, local_linear_estimation
 from bandwith_selection import compute_W, compute_X_tilde, compute_A, compute_n_h, compute_aic
-
+#import statsmodels as sm
 import pandas as pd
 
 def beta_0(t):
@@ -145,28 +147,31 @@ def MADE(beta_hat, beta):
 
 def main():
     
-    curve_estimates_1, lst_timesteps, lst_made = do_LL_for_specific_bw(50, 0.275)
+    curve_estimates_1, lst_timesteps, lst_made = do_LL_for_specific_bw(5, 0.275)
     #curve_estimates_2, h_store = perform_multiple_LL(500)
     
     
-    plt.figure()
+    #plt.figure()
     fig, (ax1, ax2) = plt.subplots(1, 2, constrained_layout = True)
     fig.set_size_inches(14, 6)
-
+    
+    custom_lines = [Line2D([0], [0], color = "green", lw=2),
+                  Line2D([0], [0], color = "red", lw=2)]
+    
     for curve, time_steps in zip(curve_estimates_1, lst_timesteps): 
         ax1.plot(time_steps, curve[:,0], color = "green")
         ax1.plot(time_steps, vbeta_0(time_steps), color = "red") 
-        ax1.set_ylabel('beta_0(t)', fontsize=16)
+        ax1.set_ylabel("beta_1(t)",fontsize = 16)
         ax1.set_xlabel('t', fontsize=16)
         ax1.tick_params(axis='both', which='major', labelsize=14)
-
+        ax1.legend(custom_lines, [r'$\hat{\beta}_{0}(t)$', r'$\beta_{0}(t)$'])
         
         ax2.plot(time_steps, curve[:,1], color = "green")
         ax2.plot(time_steps, vbeta_1(time_steps), color = "red") 
         ax2.set_ylabel('beta_1(t)', fontsize=16)
         ax2.set_xlabel('t', fontsize=16)
         ax2.tick_params(axis='both', which='major', labelsize = 14)
-        
+        ax2.legend(custom_lines, [r'$\hat{\beta}_{1}(t)$', r'$\beta_{1}(t)$'])
     #custom legend link : https://matplotlib.org/3.1.1/gallery/text_labels_and_annotations/custom_legends.html
  
     return lst_made
