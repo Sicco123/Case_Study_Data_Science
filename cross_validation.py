@@ -85,18 +85,15 @@ def local_linear_estimation(y, X, time_steps, steps, h):
 
     return theta_all
 
-def main():
-    y, X, time_steps = get_and_prepare_data()
-    steps = time_steps
-    steps.sort()
+def cross_validation_bandwith(u1, u2, y, X, steps, time_steps):
+    h_array = np.arange(u1, u2, (u1-u2)/10) # 10 steps
 
-    h_array = np.arange(0.01,0.3,0.01)
-
+    log_lik_opt = 100000
     for h in h_array:
         theta_estimate = local_linear_estimation(y, X, time_steps, steps, h)
-        #plt.plot(theta_estimate[:, 1])
-        #plt.title('beta 1')
-        #plt.show()
+        # plt.plot(theta_estimate[:, 1])
+        # plt.title('beta 1')
+        # plt.show()
 
         y_pred = np.diagonal(X.T @ theta_estimate.T)
 
@@ -104,11 +101,20 @@ def main():
 
         log_likelihood = np.log(np.sum(np.square(resid)))
 
+        if log_likelihood < log_lik_opt:
+            log_lik_opt = log_likelihood
+            h_opt = h
+
         print(f'The log likelihood of bandwith ({h}) = {log_likelihood}')
 
-    # plt.title('y pred')
-    # plt.plot(y_pred)
-    # plt.show()
+    return h
+
+def main():
+    y, X, time_steps = get_and_prepare_data()
+    steps = time_steps
+    steps.sort()
+
+    h_opt = cross_validation_bandwith(0.01, 1, y, X, steps, time_steps)
 
 
 if __name__ == '__main__':
