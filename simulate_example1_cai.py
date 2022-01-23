@@ -13,8 +13,9 @@ import pickle
 import numpy as np
 import math as ms
 import matplotlib.pyplot as plt
-from local_linear_estimation_cai import kernel_function, compute_S, compute_T, compute_theta, local_linear_estimation
-from bandwith_selection import compute_W, compute_X_tilde, compute_A, compute_n_h, compute_aic
+from local_linear_estimation_cai import kernel_function, compute_S_k, compute_T, compute_theta, local_linear_estimation
+from bandwith_selection import compute_aic
+from tqdm import tqdm
 
 import pandas as pd
 
@@ -75,16 +76,19 @@ def get_bandwidth_aic(y, X, time_steps, steps):
             time_steps: array of size (n,)
                 steps: array of size ?
     """
-    bandwidth_values = [0.01 + i * 0.0025 for i in range(4)]
-    
+    # bandwidth_values = [0.01 + i * 0.0025 for i in range(4)]
+    bandwidth_values = np.linspace(0.01, 0.1, 10)
+
     # Lists to store the theta estimates and aics  
     lst_theta_estimate = []
     lst_aic = []
     
-    for bw in bandwidth_values:
+    for bw in tqdm(bandwidth_values):
         theta_estimate = local_linear_estimation(y, X, time_steps, steps, bw)
+        y_pred = np.diagonal(np.matmul(X.T, theta_estimate.T))
         lst_theta_estimate += [theta_estimate]
-        aic = compute_aic(y, X, theta_estimate, time_steps, bw)
+        aic = compute_aic(y, X, y_pred, time_steps, bw)
+        print(bw, aic)
         lst_aic += [[bw, aic]]
         
     # h_opt = optimal bandwidth
@@ -122,7 +126,7 @@ def do_LL_for_specific_bw(number, bw):
     do_LL_for_specific_bw: Returns a specific
                 
     """
-    store_theta  = []
+    store_theta = []
     store_timesteps = []
     store_made = []
     
@@ -143,16 +147,17 @@ def MADE(beta_hat, beta):
 
 def main():
     
-    curve_estimates_1, lst_timesteps, lst_made = do_LL_for_specific_bw(50, 0.275)
-    #curve_estimates_2, h_store = perform_multiple_LL(500)
+    # curve_estimates_1, lst_timesteps, lst_made = do_LL_for_specific_bw(50, 0.275)
+    curve_estimates_2, h_store = perform_multiple_LL(1)
+
+    print(h_store)
     
-    
-    plt.figure()
-    for curve, time_steps in zip(curve_estimates_1, lst_timesteps):
-        plt.plot(time_steps, curve[:,1], color = "green")
-        plt.plot(time_steps, vbeta_1(time_steps), color = "red") 
-        
-    return lst_made
+    # plt.figure()
+    # for curve, time_steps in zip(curve_estimates_1, lst_timesteps):
+    #     plt.plot(time_steps, curve[:,1], color = "green")
+    #     plt.plot(time_steps, vbeta_1(time_steps), color = "red")
+    #
+    # return lst_made
 
 if __name__ == '__main__':
     start = datetime.now()

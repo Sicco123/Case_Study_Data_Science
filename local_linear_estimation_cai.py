@@ -5,7 +5,7 @@ from Junk.time_varying_coefficient_estimation import transform_data
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 
-np.random.seed(2022)
+# np.random.seed(2022)
 
 def get_and_prepare_data():
     source = 'reproduction_vs_index_Japan.pkl'
@@ -27,7 +27,7 @@ def kernel_function(u):
                   u: float
     """
 
-    if abs(u) < 1:
+    if abs(u) <= 1:
         res = (3 / 4) * (1 - u ** 2)
     else:
         res = 0
@@ -44,10 +44,13 @@ def compute_weight(k, time_steps, tau, h):
     return weight
 
 
-def compute_S(X, k, time_steps, tau, h):
+def compute_S_k(X, k, time_steps, tau, h):
     n = len(time_steps)
     weight = compute_weight(k, time_steps, tau, h)
-    S = (1 / n) * np.matmul(X, X.T * weight.reshape(-1, 1))
+    W = np.zeros((n, n))
+    np.fill_diagonal(W, weight)
+    S = (1/n) * np.matmul(X, np.matmul(W, X.T))
+
 
     return S
 
@@ -61,9 +64,9 @@ def compute_T(X, Y, k, time_steps, tau, h):
 
 
 def compute_theta(X, Y, time_steps, tau, h):
-    S0 = compute_S(X, 0, time_steps, tau, h)
-    S1 = compute_S(X, 1, time_steps, tau, h)
-    S2 = compute_S(X, 2, time_steps, tau, h)
+    S0 = compute_S_k(X, 0, time_steps, tau, h)
+    S1 = compute_S_k(X, 1, time_steps, tau, h)
+    S2 = compute_S_k(X, 2, time_steps, tau, h)
     T0 = compute_T(X, Y, 0, time_steps, tau, h)
     T1 = compute_T(X, Y, 1, time_steps, tau, h)
 
@@ -86,13 +89,15 @@ def local_linear_estimation(y, X, time_steps, steps, h):
 
 def main():
     y, X, time_steps = get_and_prepare_data()
-    steps = np.random.uniform(low=0, high=1, size=(1000,))
+    # steps = np.random.uniform(low=0, high=1, size=(1000,))
+    steps = time_steps
     steps.sort()
 
-    h = 0.15
+    h = 0.06
 
     theta_estimate = local_linear_estimation(y, X, time_steps, steps, h)
-    plt.plot(theta_estimate[:, 1])
+    print(theta_estimate[:-2, 1])
+    plt.plot(theta_estimate[:-2, 1])
     plt.title('beta 1')
     plt.show()
 
