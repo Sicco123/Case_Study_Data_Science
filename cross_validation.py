@@ -3,23 +3,22 @@ import numpy as np
 import pickle
 from Junk.time_varying_coefficient_estimation import transform_data
 import matplotlib.pyplot as plt
-from tqdm import tqdm
+
 
 np.random.seed(2022)
 
-def get_and_prepare_data():
-    source = 'reproduction_vs_index_Japan.pkl'
+def get_and_prepare_data(source, index):
     with open(source, 'rb') as f:
         raw = pickle.load(f)
 
     data = raw.dropna()  # removes nans
-    y_log, X_log = transform_data(data['Rt'], data['StringencyIndex'])
+    y_log, X_log = transform_data(data['Rt'], data[data.columns[index]])
     y_log, X_log = np.array(y_log), np.array(X_log)
     X = np.vstack((np.ones((1, len(X_log))), X_log.reshape(1, -1)))
 
     time_steps = np.array(data['time_index'] / len(data))
 
-    return y_log, X, time_steps
+    return y_log, X, time_steps, data.columns[index]
 
 def kernel_function(u):
     """
@@ -79,16 +78,18 @@ def compute_theta(X, Y, time_steps, tau, h):
 
 def local_linear_estimation(y, X, time_steps, steps, h):
     theta_all = np.empty((len(steps), 2))
-    for i, step in enumerate(tqdm(steps)):
+    for i, step in enumerate(steps):
         result = compute_theta(X, y, time_steps, step, h)
         theta_all[i] = result[:2].T
 
     return theta_all
 
 def cross_validation_bandwith(u1, u2, y, X, steps, time_steps):
-    h_array = np.arange(u1, u2, (u2-u1)/10) # 10 steps
+    h_array = np.linspace(u1,u2,100) # 100 steps
 
     log_lik_opt = 100000
+    results = []
+
     for h in h_array:
         theta_estimate = local_linear_estimation(y, X, time_steps, steps, h)
         # plt.plot(theta_estimate[:, 1])
@@ -101,20 +102,26 @@ def cross_validation_bandwith(u1, u2, y, X, steps, time_steps):
 
         log_likelihood = np.log(np.sum(np.square(resid)))
 
+        results.append((h,log_likelihood))
         if log_likelihood < log_lik_opt:
             log_lik_opt = log_likelihood
             h_opt = h
 
         print(f'The log likelihood of bandwith ({h}) = {log_likelihood}')
 
-    return h_opt
+    return h_opt, results
 
 def main():
-    y, X, time_steps = get_and_prepare_data()
+    source = 'reproduction_vs_index_Japan.pkl'
+    index = 3#'StringencyIndex'
+    y, X, time_steps, index_name = get_and_prepare_data(source, index)
     steps = time_steps
     steps.sort()
 
-    h_opt = cross_validation_bandwith(0.01, 1, y, X, steps, time_steps)
+    h_opt, results = cross_validation_bandwith(0.01, 0.2, y, X, steps, time_steps)
+
+    with open(f'cv_bw_selection_{index_name}.pkl', 'wb') as f:
+        pickle.dump(results, f)
 
 
 if __name__ == '__main__':

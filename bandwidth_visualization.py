@@ -2,17 +2,20 @@ import matplotlib.pyplot as plt
 import pickle
 import numpy as np
 
+source = 'cv_bw_selection_ContainmentHealthIndex.pkl' #'cv_bw_selection_GovernmentResponseIndex.pkl' # 'cv_bw_selection_StringencyIndex.pkl'  ##
+y_label = 'log-ll' #'AIC'
+name = 'log_lik_coantianment_small_steps'
 
-with open('bw_selection_2007.pkl', 'rb') as f:
+with open(source, 'rb') as f:
     results = pickle.load(f)
 
 fig, ax = plt.subplots()
 
 ax.scatter(*zip(*results), s=2)
 ax.set_xlabel('Bandwidth')
-ax.set_ylabel('AIC')
+ax.set_ylabel(y_label)
 fig.show()
-fig.savefig('Figures/AIC_bw.pdf')
+fig.savefig(f'Figures/{name}_bw.pdf')
 
 bw_values = np.array(list(map(list, zip(*results)))).T
 argmin = np.argmin(bw_values[:,1])
