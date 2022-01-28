@@ -67,6 +67,7 @@ def main():
 
     beta_bootstrap = np.zeros(((B+1),len(beta_estimate)))
     beta_bootstrap[0,:] = beta_estimate
+
     y_simulated = simulate_y(y_pred, residuals, B)
 
     #plt.plot(y_simulated[1,:])
