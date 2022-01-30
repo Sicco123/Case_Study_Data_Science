@@ -12,7 +12,9 @@ from Junk.time_varying_coefficient_estimation import transform_data
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import local_linear_estimation_cai as ll_estimation
+import cross_validation as cv
 import multiprocessing
+import math
 import time
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
@@ -107,7 +109,17 @@ def bootstrap_procedure(y_pred, residuals, beta_estimate, B, steps, time_steps, 
 
     return beta_bootstrap
 
-def plot_beta_CI(x, beta_observed, q_bootstrap, alpha, B):
+def plot_beta_CI(x, beta_observed, q_bootstrap, alpha, B, index):
+
+    a1 = 27/448
+    b1 = 74/448
+
+    a2 = 303/448
+    b2 = 385/448
+
+    a3 = 418/448
+    b3 = 448/448
+
     quantile_1 = int(0.5*alpha*(B+1))
     quantile_2 = int((1-0.5*alpha)*(B+1))
 
@@ -123,20 +135,43 @@ def plot_beta_CI(x, beta_observed, q_bootstrap, alpha, B):
 
     fig, ax = plt.subplots()
     ax.plot(x, beta_observed, color = 'k')
-    ax.fill_between(x, beta_bootstrap_q1, beta_bootstrap_q2, color='r', alpha=.1)
-    ax.set_title('Time Varying Estimates', fontweight='bold', fontsize=18)
-    fig.savefig('Figures/Bootstraped_Sieve_Confidence_Intervals_Time_Varying_Estimates')
+    ax.plot(x, beta_bootstrap_q1, '--', color = 'r', alpha = 0.8)
+    ax.plot(x, beta_bootstrap_q2, '--', color = 'r', alpha = 0.8)
+    ax.set_ylim(-9,9)
+    ax.set_xlim(0,1)
+    ax.fill_between(x, beta_bootstrap_q1, beta_bootstrap_q2, color='r', alpha=.05)
+    ax.set_xticks([21/448, 51/448, 82/448, 112/448, 143/448, 174/448, 204/448, 235/448, 265/448, 296/448, 327/448, 355/448, 386/448, 416/448, 447/448])
+    ax.set_xticklabels([4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6])
+    ax.axhline(y=0, color = 'k', linewidth = 0.5)
+    #ax.set_title('Time Varying Estimates', fontweight='bold', fontsize=18)
+    plt.axvspan(a1, b1, color='k', alpha=0.1, lw=0)
+    plt.axvspan(a2, b2, color='k', alpha=0.1, lw=0)
+    plt.axvspan(a3, b3, color='k', alpha=0.1, lw=0)
+    plt.ylabel("beta_1(t)")
+    plt.xlabel("t (month)")
+    fig.savefig(f'Figures/Bootstraped_Sieve_Confidence_Intervals_Time_Varying_Estimates_{index}_cut_off')
     plt.show()
 
+def over_smooth_bandwidth(n, bandwidth_2):
+    crit_1 = h_tilde
+    crit_2 = n * h * h_tilde ** 4
+    crit_3 = h * math.log(n / h_tilde)
+
+    return max(crit_1, crit_2, crit_3)
+
 def main():
-    bandwidth_1 = 1.18
-    bandwidth_2 = 0.14
+    bandwidth_2 = 0.13
+    bandwidth_1 = 2*bandwidth_2**(5/9)
+
     #steps_size = 1000
-    B = 199
+    B = 999
     alpha = 0.05
     max_lag = 10
 
-    y, X, time_steps = ll_estimation.get_and_prepare_data()
+    source = 'reproduction_vs_index_Japan.pkl'
+    index = 3  # 'StringencyIndex'
+
+    y, X, time_steps, name = cv.get_and_prepare_data(source, index)
     steps = time_steps
     steps.sort()
 
@@ -154,7 +189,8 @@ def main():
     theta_estimate = local_linear_estimation([y, X, time_steps, steps, bandwidth_2])
     beta_estimate = theta_estimate[:, 1]
 
-    plot_beta_CI(time_steps[max_lag:], beta_estimate[max_lag:], q_bootstrap, alpha, B)
+
+    plot_beta_CI(time_steps[max_lag:], beta_estimate[max_lag:], q_bootstrap, alpha, B, name)
 
 
 if __name__ == "__main__":
