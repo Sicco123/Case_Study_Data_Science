@@ -19,12 +19,13 @@ import math
 import pickle
 from tqdm import tqdm
 
+
 def compute_T_prime_K(X, time_steps, tau, h, k):
     n = len(time_steps)
     weight = compute_weight(k, time_steps, tau, h)
     W = np.zeros((n, n))
     np.fill_diagonal(W, weight)
-    T_k = (1/n) * np.matmul(X, W)
+    T_k = (1 / n) * np.matmul(X, W)
 
     return T_k
 
@@ -37,6 +38,7 @@ def compute_T_prime(X, time_steps, tau, h):
 
     return T_prime
 
+
 def compute_S(X, time_steps, tau, h):
     S0 = compute_S_k(X, 0, time_steps, tau, h)
     S1 = compute_S_k(X, 1, time_steps, tau, h)
@@ -48,25 +50,26 @@ def compute_S(X, time_steps, tau, h):
 
     return S
 
+
 def compute_H_row(x, X, identity, time_steps, tau, h):
     S = compute_S(X, time_steps, tau, h)
     T_prime = compute_T_prime(X, time_steps, tau, h)
     # H_row = np.matmul(np.matmul(x, identity), np.matmul(S, T_prime))
     H_row = np.matmul(x, np.matmul(S, T_prime))
 
-
     return H_row
+
 
 def compute_n_h(X, time_steps, h):
     p, n = X.shape
-    X_tilde = np.hstack([X.T, np.zeros((n, p))])  #TODO: maybe replace with Z
-    identity = np.zeros((2*p, 2*p))
-    identity_diagonal = np.array([1]*p + [0]*p)
+    X_tilde = np.hstack([X.T, np.zeros((n, p))])  # TODO: maybe replace with Z
+    identity = np.zeros((2 * p, 2 * p))
+    identity_diagonal = np.array([1] * p + [0] * p)
     np.fill_diagonal(identity, identity_diagonal)
 
     H_matrix = []
     for i, tau in enumerate(time_steps):
-        H_row = compute_H_row(X_tilde[i].reshape(1,-1), X, identity, time_steps, tau, h)
+        H_row = compute_H_row(X_tilde[i].reshape(1, -1), X, identity, time_steps, tau, h)
         H_matrix.append(H_row)
 
     H_matrix = np.stack(H_matrix).reshape(n, n)
@@ -86,9 +89,9 @@ def compute_aic(y, X, y_pred, time_steps, h):
     # aic = math.log(RSS) + (2 * (1 + n_h) / (n - n_h - 2))
 
     sigma_sq = ((y - y_pred) ** 2).mean()
-    print(f'trace = {n_h}')
-    print(f'sigma sq = {sigma_sq}')
-    print('Penalty =', (2 * (n_h + 1) / (n - n_h - 2)))
+    # print(f'trace = {n_h}')
+    # print(f'sigma sq = {sigma_sq}')
+    # print('Penalty =', (2 * (n_h + 1) / (n - n_h - 2)))
     aic = math.log(sigma_sq) + (2 * (n_h + 1) / (n - n_h - 2))
     # aic = math.log(sigma_sq)
 
@@ -96,22 +99,23 @@ def compute_aic(y, X, y_pred, time_steps, h):
 
 
 def main():
+    indices = ['StringencyIndex', 'GovernmentResponseIndex', 'ContainmentHealthIndex']
     bandwidth_values = np.linspace(0.01, 1, 100)
-    y, X, time_steps = get_and_prepare_data()
-    # steps = np.random.uniform(low=0, high=1, size=(1000,)
-    steps = time_steps
-    steps.sort()
-    results = []
+    for index in indices:
+        y, X, time_steps = get_and_prepare_data(index)
+        # steps = np.random.uniform(low=0, high=1, size=(1000,)
+        steps = time_steps
+        steps.sort()
+        results = []
 
-    for bw in tqdm(bandwidth_values):
-        theta_estimate = local_linear_estimation(y, X, time_steps, steps, bw)
-        y_pred = np.diagonal(np.matmul(X.T, theta_estimate.T))
-        aic = compute_aic(y, X, y_pred, time_steps, bw)
-        results.append((bw, aic))
-        print(f'AIC for bw of {bw} = {aic}')
-    #
-    with open('bw_selection_2007.pkl', 'wb') as f:
-        pickle.dump(results, f)
+        for bw in tqdm(bandwidth_values):
+            theta_estimate = local_linear_estimation(y, X, time_steps, steps, bw)
+            y_pred = np.diagonal(np.matmul(X.T, theta_estimate.T))
+            aic = compute_aic(y, X, y_pred, time_steps, bw)
+            results.append((bw, aic))
+        #
+        with open(f'bw_selection_{index}.pkl', 'wb') as f:
+            pickle.dump(results, f)
 
 
 if __name__ == '__main__':
